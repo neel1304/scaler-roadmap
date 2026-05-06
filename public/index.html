@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Scaler Roadmap Engine</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+:root{
+  --bg:#070D18; --bg-2:#0B1529; --ink:#F5F5F5; --ink-dim:#AAAAAA;
+  --muted:#787878; --line:#1C2940; --accent:#0055FF; --accent-2:#004CE5;
+  --gold:#D8A901; --paper:#FFFFFF; --paper-ink:#212121;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Manrope', sans-serif; background:var(--bg); color:var(--ink);
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:1;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity:.7; mix-blend-mode:overlay;
+}
+.shell{ position:relative; z-index:2; max-width:1280px; margin:0 auto; padding:32px 40px 80px; }
+
+.topbar{ display:flex; justify-content:space-between; align-items:center; padding-bottom:24px; border-bottom:1px solid var(--line); margin-bottom:48px; }
+.brand{ display:flex; align-items:center; gap:12px; font-family:'Fraunces', serif; font-weight:600; font-size:22px; letter-spacing:-0.02em; }
+.brand .dot{ width:14px; height:14px; border-radius:50%; background:var(--accent); box-shadow:0 0 24px rgba(0,85,255,0.6); }
+.topbar .meta{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--ink-dim); letter-spacing:0.08em; text-transform:uppercase; }
+
+.hero{ display:grid; grid-template-columns: 1.4fr 1fr; gap:64px; align-items:end; margin-bottom:64px; }
+.hero h1{ font-family:'Fraunces', serif; font-weight:500; font-size:clamp(48px, 7vw, 96px); line-height:0.95; letter-spacing:-0.04em; font-variation-settings:"opsz" 144; }
+.hero h1 em{ font-style:italic; color:var(--accent); font-weight:400; }
+.hero h1 .strike{ display:inline-block; position:relative; }
+.hero h1 .strike::after{ content:""; position:absolute; left:-4%; right:-4%; top:55%; height:8px; background:var(--accent-2); transform:rotate(-2deg); }
+.hero-meta{ font-size:14px; line-height:1.6; color:var(--ink-dim); border-left:2px solid var(--accent); padding-left:20px; }
+.hero-meta strong{ color:var(--ink); }
+
+.stepper{ display:flex; gap:0; margin-bottom:32px; border:1px solid var(--line); overflow:hidden; }
+.step{ flex:1; padding:18px 20px; font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); border-right:1px solid var(--line); position:relative; transition:all .3s ease; cursor:default; }
+.step:last-child{ border-right:none; }
+.step.active{ background:var(--accent); color:#FFFFFF; font-weight:600; }
+.step.done{ color:var(--ink); }
+.step.done::before{ content:"✓ "; color:var(--accent); }
+.step .num{ opacity:.5; margin-right:8px; }
+
+.card{ background:var(--bg-2); border:1px solid var(--line); padding:40px; margin-bottom:24px; position:relative; }
+.card::before{ content:""; position:absolute; top:-1px; left:-1px; width:24px; height:24px; border-top:2px solid var(--accent); border-left:2px solid var(--accent); }
+.card::after{ content:""; position:absolute; bottom:-1px; right:-1px; width:24px; height:24px; border-bottom:2px solid var(--accent); border-right:2px solid var(--accent); }
+.card h2{ font-family:'Fraunces', serif; font-weight:500; font-size:32px; letter-spacing:-0.02em; margin-bottom:8px; }
+.card .subtitle{ font-size:13px; color:var(--ink-dim); margin-bottom:28px; font-family:'JetBrains Mono', monospace; letter-spacing:0.05em; }
+
+.dropzone{ border:2px dashed var(--line); padding:56px 32px; text-align:center; transition:all .25s ease; cursor:pointer; background:rgba(0,85,255,0.02); position:relative; }
+.dropzone:hover, .dropzone.drag{ border-color:var(--accent); background:rgba(0,85,255,0.06); }
+.dropzone svg{ width:48px; height:48px; stroke:var(--accent); margin-bottom:16px; }
+.dropzone .big{ font-family:'Fraunces', serif; font-size:24px; font-weight:500; margin-bottom:8px; }
+.dropzone .small{ font-size:13px; color:var(--ink-dim); }
+.dropzone .small span{ color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
+.dropzone.has-file{ border-style:solid; border-color:var(--accent); background:rgba(0,85,255,0.08); }
+.file-info{ display:flex; align-items:center; justify-content:center; gap:12px; font-family:'JetBrains Mono', monospace; font-size:13px; }
+.file-info .badge{ background:var(--accent); color:#FFFFFF; padding:4px 10px; font-weight:600; font-size:10px; letter-spacing:0.1em; }
+
+.course-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+.course-card{ border:1px solid var(--line); padding:24px 20px; cursor:pointer; transition:all .25s ease; position:relative; background:var(--bg); }
+.course-card:hover{ border-color:var(--ink-dim); transform:translateY(-2px); }
+.course-card.selected{ border-color:var(--accent); background:rgba(0,85,255,0.06); }
+.course-card.selected::before{ content:"●"; position:absolute; top:12px; right:14px; color:var(--accent); font-size:14px; }
+.course-card .code{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--muted); letter-spacing:0.15em; margin-bottom:8px; }
+.course-card .name{ font-family:'Fraunces', serif; font-size:20px; font-weight:500; margin-bottom:6px; line-height:1.15; }
+.course-card .desc{ font-size:12px; color:var(--ink-dim); line-height:1.4; }
+.course-card.auto{ border-style:dashed; }
+.course-card.auto .name em{ color:var(--accent); font-style:italic; }
+
+.field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.field{ display:flex; flex-direction:column; gap:8px; }
+.field.full{ grid-column:1/-1; }
+.field label{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-dim); }
+.field label .opt{ color:var(--muted); margin-left:6px; }
+.field input, .field textarea, .field select{ background:var(--bg); border:1px solid var(--line); color:var(--ink); padding:14px 16px; font-family:'Manrope', sans-serif; font-size:14px; outline:none; transition:border .2s ease; }
+.field input:focus, .field textarea:focus, .field select:focus{ border-color:var(--accent); }
+.field textarea{ resize:vertical; min-height:80px; }
+
+.actions{ display:flex; justify-content:space-between; align-items:center; margin-top:32px; gap:16px; }
+.btn{ display:inline-flex; align-items:center; gap:10px; padding:16px 32px; font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:0.15em; text-transform:uppercase; font-weight:600; border:none; cursor:pointer; transition:all .2s ease; background:transparent; color:var(--ink); border:1px solid var(--line); }
+.btn:hover{ border-color:var(--ink-dim); }
+.btn.primary{ background:var(--accent); color:#FFFFFF; border-color:var(--accent); }
+.btn.primary:hover{ background:var(--ink); border-color:var(--ink); transform:translateY(-1px); }
+.btn.primary:disabled{ background:var(--line); color:var(--muted); cursor:not-allowed; border-color:var(--line); transform:none; }
+.btn .arrow{ font-size:16px; }
+
+.loader{ display:none; text-align:center; padding:60px 20px; }
+.loader.show{ display:block; }
+.loader .pulse{ display:inline-block; width:80px; height:80px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:24px; }
+.loader .status{ font-family:'Fraunces', serif; font-size:24px; font-weight:500; margin-bottom:8px; }
+.loader .substatus{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--ink-dim); letter-spacing:0.05em; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.result-wrap{ display:none; }
+.result-wrap.show{ display:block; }
+.result-toolbar{ display:flex; justify-content:space-between; align-items:center; padding:20px 24px; background:var(--bg-2); border:1px solid var(--line); margin-bottom:16px; }
+.result-toolbar .left{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--ink-dim); letter-spacing:0.05em;}
+.result-toolbar .left strong{ color:var(--accent); }
+
+.roadmap-doc{ background:var(--paper); color:var(--paper-ink); padding:48px 52px; font-family:'Manrope', sans-serif; position:relative; }
+.roadmap-doc::before{ content:""; position:absolute; top:0; left:0; right:0; height:6px; background:linear-gradient(90deg, var(--accent) 0%, var(--accent) 50%, var(--accent-2) 50%, var(--accent-2) 75%, var(--paper-ink) 75%); }
+.doc-head{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--paper-ink); padding-bottom:20px; margin-bottom:32px; }
+.doc-head .logo{ font-family:'Fraunces', serif; font-weight:600; font-size:24px; letter-spacing:-0.02em; }
+.doc-head .logo span{ color:var(--accent); }
+.doc-head .stamp{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; text-align:right; line-height:1.6; color:var(--paper-ink); opacity:.7; }
+.doc-title{ font-family:'Fraunces', serif; font-size:42px; font-weight:500; letter-spacing:-0.03em; line-height:1; margin-bottom:8px; }
+.doc-title em{ font-style:italic; color:var(--accent-2); }
+.doc-subtitle{ font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--paper-ink); opacity:.6; margin-bottom:40px; }
+.section-h{ font-family:'Fraunces', serif; font-size:22px; font-weight:600; letter-spacing:-0.01em; margin:28px 0 12px; display:flex; align-items:center; gap:14px; padding-bottom:8px; border-bottom:1px solid var(--paper-ink); page-break-after:avoid; break-after:avoid; }
+.section-h .sn{ font-family:'JetBrains Mono', monospace; font-size:11px; background:var(--paper-ink); color:var(--paper); padding:5px 9px; letter-spacing:0.1em; font-weight:600; flex-shrink:0; line-height:1; }
+.section-h .st{ display:inline-block; line-height:1.2; }
+.section-note{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.04em; color:var(--paper-ink); opacity:.55; margin:-6px 0 14px; padding:6px 10px; border-left:2px solid var(--accent-2); background:rgba(0,76,229,0.04); }
+.roadmap-doc table{ width:100%; border-collapse:collapse; margin-bottom:8px; font-size:12px; line-height:1.4; page-break-inside:auto; }
+.roadmap-doc thead{ display:table-header-group; }
+.roadmap-doc tr{ page-break-inside:avoid; break-inside:avoid; }
+.roadmap-doc th{ background:var(--paper-ink); color:var(--paper); text-align:left; padding:10px 12px; font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; font-weight:600; }
+.roadmap-doc td{ padding:10px 12px; border-bottom:1px solid #d4d0c4; vertical-align:top; }
+.roadmap-doc tr:nth-child(even) td{ background:rgba(0,0,0,0.02); }
+.roadmap-doc td strong{ color:var(--paper-ink); }
+.roadmap-doc .jd{ font-style:italic; color:var(--accent-2); font-weight:500; }
+.doc-footer{ margin-top:48px; padding-top:20px; border-top:2px solid var(--paper-ink); display:flex; justify-content:space-between; font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; opacity:.6; }
+
+.error-box{ background:rgba(197,48,48,0.08); border:1px solid #C53030; padding:20px 24px; margin-bottom:24px; font-size:14px; color:var(--ink); display:none; }
+.error-box.show{ display:block; }
+.error-box strong{ color:#C53030; }
+
+.foot{ margin-top:80px; padding-top:24px; border-top:1px solid var(--line); display:flex; justify-content:space-between; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:0.05em; }
+.hidden{ display:none !important; }
+
+@media (max-width:900px){
+  .hero{ grid-template-columns:1fr; gap:32px; }
+  .field-grid{ grid-template-columns:1fr; }
+  .shell{ padding:24px 20px 60px; }
+  .card{ padding:28px 24px; }
+  .roadmap-doc{ padding:32px 24px; }
+  .actions{ flex-direction:column-reverse; }
+  .actions .btn{ width:100%; justify-content:center; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="dot"></div>
+      Scaler / Roadmap Engine
+    </div>
+    <div class="meta">v1.0 · Profile-to-Program Mapper</div>
+  </header>
+
+  <section class="hero">
+    <h1>
+      From <em>résumé</em><br/>
+      to roadmap.
+    </h1>
+    <div class="hero-meta">
+      Upload your résumé. Pick a path. Get a <strong>session-ready career roadmap</strong> — strengths, gaps, modules, projects, companies, and JD-mapped outcomes. Tabular. Specific. Downloadable as PDF.
+    </div>
+  </section>
+
+  <div class="stepper" id="stepper">
+    <div class="step active" data-step="1"><span class="num">01</span>Upload Résumé</div>
+    <div class="step" data-step="2"><span class="num">02</span>Pick Program</div>
+    <div class="step" data-step="3"><span class="num">03</span>Optional Context</div>
+    <div class="step" data-step="4"><span class="num">04</span>Generate Roadmap</div>
+  </div>
+
+  <div class="error-box" id="errorBox">
+    <strong>Error:</strong> <span id="errorText"></span>
+  </div>
+
+  <section class="card" id="card1">
+    <h2>01 — Drop résumé or LinkedIn export</h2>
+    <div class="subtitle">// PDF only · max 10mb · text extracted in browser</div>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".pdf,application/pdf" style="display:none"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <div class="big" id="dzBig">Drop PDF here</div>
+      <div class="small" id="dzSmall">or <span>browse files</span> · résumé / LinkedIn PDF export</div>
+    </div>
+  </section>
+
+  <section class="card hidden" id="card2">
+    <h2>02 — Choose your program</h2>
+    <div class="subtitle">// pick one · or let us auto-detect</div>
+    <div class="course-grid" id="courseGrid">
+      <div class="course-card auto selected" data-course="auto">
+        <div class="code">AUTO · 00</div>
+        <div class="name">Let us <em>auto-detect</em></div>
+        <div class="desc">We map your profile to the best-fit program based on background and goal.</div>
+      </div>
+      <div class="course-card" data-course="aiml">
+        <div class="code">AIML · 01</div>
+        <div class="name">AI / ML Engineering</div>
+        <div class="desc">For SDEs moving into ML, deep learning, generative AI roles.</div>
+      </div>
+      <div class="course-card" data-course="dsml">
+        <div class="code">DSML · 02</div>
+        <div class="name">Data Science & ML</div>
+        <div class="desc">For analysts, non-tech, business folks entering data science.</div>
+      </div>
+      <div class="course-card" data-course="academy">
+        <div class="code">SDE · 03</div>
+        <div class="name">Software Engineering (Academy)</div>
+        <div class="desc">DSA, system design, full-stack — for developers leveling up.</div>
+      </div>
+      <div class="course-card" data-course="devops">
+        <div class="code">DEVOPS · 04</div>
+        <div class="name">DevOps & Cloud</div>
+        <div class="desc">Infra, K8s, CI/CD, SRE — for ops, infra, backend engineers.</div>
+      </div>
+      <div class="course-card" data-course="iitr">
+        <div class="code">IITR · 05</div>
+        <div class="name">IIT Roorkee · Advanced AI</div>
+        <div class="desc">Short-form, certificate-led AI engineering program.</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="goToStep(1)">← Back</button>
+      <button class="btn primary" onclick="goToStep(3)">Continue <span class="arrow">→</span></button>
+    </div>
+  </section>
+
+  <section class="card hidden" id="card3">
+    <h2>03 — Optional context</h2>
+    <div class="subtitle">// none mandatory · adds personalization where given</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Full Name <span class="opt">(optional)</span></label>
+        <input type="text" id="fName" placeholder="e.g. Ananya Sharma"/>
+      </div>
+      <div class="field">
+        <label>Years of Experience <span class="opt">(optional)</span></label>
+        <select id="fExp">
+          <option value="">— auto-detect from résumé —</option>
+          <option>Fresher / 0 yrs</option>
+          <option>0–2 yrs</option>
+          <option>2–5 yrs</option>
+          <option>5–8 yrs</option>
+          <option>8–12 yrs</option>
+          <option>12+ yrs</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Current Role <span class="opt">(optional)</span></label>
+        <input type="text" id="fRole" placeholder="e.g. SDE-2 at Flipkart"/>
+      </div>
+      <div class="field">
+        <label>Target Role <span class="opt">(optional)</span></label>
+        <input type="text" id="fTarget" placeholder="e.g. ML Engineer at FAANG"/>
+      </div>
+      <div class="field full">
+        <label>Goal / Motivation <span class="opt">(optional)</span></label>
+        <textarea id="fGoal" placeholder="e.g. Want to transition into AI/ML, target FAANG-tier comp, comfortable with 12-month timeline..."></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="goToStep(2)">← Back</button>
+      <button class="btn primary" id="generateBtn" onclick="generateRoadmap()">Generate Roadmap <span class="arrow">→</span></button>
+    </div>
+  </section>
+
+  <section class="card hidden" id="card4">
+    <div class="loader" id="loader">
+      <div class="pulse"></div>
+      <div class="status" id="loaderStatus">Analyzing your profile…</div>
+      <div class="substatus" id="loaderSub">// extracting · mapping · generating</div>
+    </div>
+    <div class="result-wrap" id="resultWrap">
+      <div class="result-toolbar">
+        <div class="left">// roadmap · <strong id="programLabel">Auto</strong> · ready</div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn" onclick="restart()">↻ New Roadmap</button>
+          <button class="btn primary" onclick="downloadPDF()">↓ Download PDF</button>
+        </div>
+      </div>
+      <div id="roadmapOutput" class="roadmap-doc"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div>© Scaler · Roadmap Engine</div>
+    <div>Crisp. Tabular. Session-ready.</div>
+  </footer>
+
+</div>
+
+<script>
+const state = { resumeText: "", resumeFileName: "", course: "auto", fields: {} };
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+function goToStep(n){
+  document.querySelectorAll('.step').forEach(s=>{
+    const sn = parseInt(s.dataset.step);
+    s.classList.remove('active','done');
+    if(sn < n) s.classList.add('done');
+    if(sn === n) s.classList.add('active');
+  });
+  for(let i=1;i<=4;i++){
+    document.getElementById('card'+i).classList.toggle('hidden', i !== n);
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click', ()=> fileInput.click());
+dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e=>{
+  if(e.target.files.length) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file){
+  if(!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')){
+    showError("Only PDF files are supported. Export your LinkedIn or résumé as PDF.");
+    return;
+  }
+  if(file.size > 10*1024*1024){ showError("File too large (max 10MB)."); return; }
+  hideError();
+  state.resumeFileName = file.name;
+  dropzone.classList.add('has-file');
+  document.getElementById('dzBig').innerHTML = `<div class="file-info"><span class="badge">EXTRACTING</span> ${file.name}</div>`;
+  document.getElementById('dzSmall').textContent = "Reading PDF…";
+  try{
+    const text = await extractPDFText(file);
+    if(!text || text.trim().length < 50) throw new Error("Could not extract enough text from the PDF. Try a text-based PDF (not scanned).");
+    state.resumeText = text;
+    document.getElementById('dzBig').innerHTML = `<div class="file-info"><span class="badge">READY</span> ${file.name}</div>`;
+    document.getElementById('dzSmall').innerHTML = `<span style="color:var(--accent)">${text.length.toLocaleString()} chars extracted</span> · proceed →`;
+    setTimeout(()=> goToStep(2), 600);
+  }catch(err){
+    showError(err.message);
+    dropzone.classList.remove('has-file');
+    document.getElementById('dzBig').textContent = "Drop PDF here";
+    document.getElementById('dzSmall').innerHTML = `or <span>browse files</span> · résumé / LinkedIn PDF export`;
+  }
+}
+
+async function extractPDFText(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  let fullText = "";
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map(it => it.str).join(" ") + "\n\n";
+  }
+  return fullText;
+}
+
+document.querySelectorAll('.course-card').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    document.querySelectorAll('.course-card').forEach(c=> c.classList.remove('selected'));
+    card.classList.add('selected');
+    state.course = card.dataset.course;
+  });
+});
+
+function showError(msg){
+  const eb = document.getElementById('errorBox');
+  document.getElementById('errorText').textContent = msg;
+  eb.classList.add('show');
+  setTimeout(()=> eb.classList.remove('show'), 10000);
+}
+function hideError(){ document.getElementById('errorBox').classList.remove('show'); }
+
+async function generateRoadmap(){
+  state.fields = {
+    name: document.getElementById('fName').value.trim(),
+    exp: document.getElementById('fExp').value.trim(),
+    role: document.getElementById('fRole').value.trim(),
+    target: document.getElementById('fTarget').value.trim(),
+    goal: document.getElementById('fGoal').value.trim()
+  };
+  if(!state.resumeText){ showError("No résumé loaded. Go back to step 1."); return; }
+
+  goToStep(4);
+  document.getElementById('loader').classList.add('show');
+  document.getElementById('resultWrap').classList.remove('show');
+
+  const statuses = [
+    ["Reading your profile…", "// parsing experience · skills · trajectory"],
+    ["Mapping to program…", "// matching profile to best-fit roadmap"],
+    ["Identifying strengths & gaps…", "// leverage analysis · risk assessment"],
+    ["Building module roadmap…", "// JD-mapped · interview-ready · job-relevant"],
+    ["Finalizing companies & projects…", "// session-ready output"]
+  ];
+  let stIdx = 0;
+  const statusInterval = setInterval(()=>{
+    stIdx = (stIdx+1) % statuses.length;
+    document.getElementById('loaderStatus').textContent = statuses[stIdx][0];
+    document.getElementById('loaderSub').textContent = statuses[stIdx][1];
+  }, 2400);
+
+  try{
+    const html = await callBackend();
+    clearInterval(statusInterval);
+    document.getElementById('loader').classList.remove('show');
+    document.getElementById('resultWrap').classList.add('show');
+    renderRoadmap(html);
+  }catch(err){
+    clearInterval(statusInterval);
+    document.getElementById('loader').classList.remove('show');
+    showError("Generation failed: " + err.message);
+    goToStep(3);
+  }
+}
+
+// ===== This is the only thing different from before =====
+// Calls our local backend instead of Anthropic directly
+async function callBackend(){
+  const response = await fetch("/api/generate-roadmap", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      resumeText: state.resumeText,
+      course: state.course,
+      fields: state.fields
+    })
+  });
+  if(!response.ok){
+    const err = await response.json().catch(()=>({error:"Unknown error"}));
+    throw new Error(err.error || `Server returned ${response.status}`);
+  }
+  const data = await response.json();
+  return data.html;
+}
+
+function renderRoadmap(html){
+  const courseLabels = { auto:"Auto-Detected", aiml:"AIML", dsml:"DSML", academy:"Software Engineering", devops:"DevOps", iitr:"IIT Roorkee · AI" };
+  document.getElementById('programLabel').textContent = courseLabels[state.course] || "Roadmap";
+  const today = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+
+  // Try to extract candidate context from generated Profile Summary table
+  const extracted = extractCandidateContext(html);
+  const candidateName = state.fields.name || extracted.name || "Candidate";
+  const tagline = buildTagline(extracted, courseLabels[state.course]);
+
+  const docHTML = `
+    <div class="doc-head">
+      <div class="logo">Scaler<span>.</span></div>
+      <div class="stamp">Generated · ${today}<br/>Roadmap · ${courseLabels[state.course]}<br/>Confidential · Career Aid</div>
+    </div>
+    <div class="doc-title">Career Roadmap<br/><em>for ${candidateName}</em></div>
+    <div class="doc-subtitle">${tagline}</div>
+    ${transformContent(html)}
+    <div class="doc-footer"><div>Scaler · Roadmap Engine</div><div>Page 1 · End of Document</div></div>
+  `;
+  document.getElementById('roadmapOutput').innerHTML = docHTML;
+}
+
+// Pull name + role + experience from the Profile Summary <table> in generated HTML
+function extractCandidateContext(html){
+  const result = { name: "", role: "", experience: "", program: "" };
+  // Cheap parse — look for rows in the first table after section 1
+  try {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const firstTable = tmp.querySelector('table');
+    if (!firstTable) return result;
+    const rows = firstTable.querySelectorAll('tr');
+    rows.forEach(tr => {
+      const cells = tr.querySelectorAll('td');
+      if (cells.length < 2) return;
+      const label = (cells[0].textContent || "").trim().toLowerCase();
+      const value = (cells[1].textContent || "").trim();
+      if (label === "name") result.name = value;
+      else if (label.includes("current role")) result.role = value;
+      else if (label.includes("experience")) result.experience = value;
+      else if (label.includes("recommended program") || label.includes("best-fit program")) result.program = value;
+    });
+  } catch (e) { /* ignore */ }
+  return result;
+}
+
+function buildTagline(ctx, courseLabel){
+  // Build a "Anand Kumar | .NET Full Stack Developer | ~2 yrs | Mapped: SE" style strip
+  const parts = [];
+  if (ctx.role) parts.push(ctx.role);
+  if (ctx.experience) parts.push(ctx.experience);
+  if (ctx.program) parts.push("Mapped: " + ctx.program);
+  else if (courseLabel && courseLabel !== "Auto-Detected") parts.push("Mapped: " + courseLabel);
+  if (parts.length === 0) return "// Profile-to-Program Mapping · Session-Ready Output";
+  return parts.join(" · ");
+}
+
+function transformContent(html){
+  // First: transform section headings <h2>1. Title</h2> → styled <h3>
+  let out = html.replace(/<h2>\s*(\d+)\.?\s*([^<]+?)\s*<\/h2>/g, (m, num, title)=>{
+    const safeTitle = title.trim();
+    let extra = "";
+    // Section 6 — make the "samples, not commitments" framing explicit on the rendered doc.
+    if (num === "6") {
+      extra = `<p class="section-note">Indicative projects from Scaler's curriculum library — final project allocation depends on cohort, mentor and capstone fit.</p>`;
+    }
+    return `<h3 class="section-h"><span class="sn">§${num.padStart(2,'0')}</span><span class="st">${safeTitle}</span></h3>${extra}`;
+  });
+
+  // Then: italicize JD quotes — but ONLY inside <td> cells, and non-greedy
+  // This prevents matching across cells, rows, or headings.
+  out = out.replace(/<td>([^<]*)<\/td>/g, (m, cellContent)=>{
+    const transformed = cellContent.replace(/"([^"\n]{10,200}?)"/g, '<span class="jd">"$1"</span>');
+    return `<td>${transformed}</td>`;
+  });
+
+  return out;
+}
+
+async function downloadPDF(){
+  const element = document.getElementById('roadmapOutput');
+  const candidateName = (state.fields.name || "candidate").replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const filename = `scaler_roadmap_${candidateName}_${Date.now()}`;
+
+  // Show subtle loading state on the button
+  const btn = event?.target?.closest('button');
+  const originalText = btn ? btn.innerHTML : null;
+  if (btn) { btn.innerHTML = "↓ Generating PDF…"; btn.disabled = true; }
+
+  try {
+    const response = await fetch("/api/generate-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        html: element.innerHTML,
+        filename: filename
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(()=>({error:"PDF server error"}));
+      throw new Error(err.error || `Server returned ${response.status}`);
+    }
+
+    // Download the binary PDF
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename + ".pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    showError("PDF download failed: " + err.message);
+  } finally {
+    if (btn && originalText) { btn.innerHTML = originalText; btn.disabled = false; }
+  }
+}
+
+function restart(){
+  state.resumeText = ""; state.resumeFileName = ""; state.course = "auto"; state.fields = {};
+  document.getElementById('fName').value = ""; document.getElementById('fExp').value = "";
+  document.getElementById('fRole').value = ""; document.getElementById('fTarget').value = "";
+  document.getElementById('fGoal').value = "";
+  fileInput.value = "";
+  dropzone.classList.remove('has-file');
+  document.getElementById('dzBig').textContent = "Drop PDF here";
+  document.getElementById('dzSmall').innerHTML = `or <span>browse files</span> · résumé / LinkedIn PDF export`;
+  document.querySelectorAll('.course-card').forEach(c=> c.classList.remove('selected'));
+  document.querySelector('.course-card[data-course="auto"]').classList.add('selected');
+  goToStep(1);
+}
+</script>
+
+</body>
+</html>
