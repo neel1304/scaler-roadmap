@@ -7,7 +7,16 @@ import Anthropic from "@anthropic-ai/sdk";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import puppeteer from "puppeteer";
+
+// Dual-mode Puppeteer: use @sparticuz/chromium on Vercel, regular puppeteer locally
+const IS_VERCEL = !!process.env.VERCEL;
+let chromium, puppeteerCore, puppeteerFull;
+if (IS_VERCEL) {
+  chromium = (await import("@sparticuz/chromium")).default;
+  puppeteerCore = (await import("puppeteer-core")).default;
+} else {
+  puppeteerFull = (await import("puppeteer")).default;
+}
 
 dotenv.config();
 
@@ -440,11 +449,21 @@ app.get("/api/health", (req, res) => {
 });
 
 // =============== PDF GENERATION (Puppeteer) ===============
-// Singleton browser — launched once, reused for all requests
+// Singleton browser — launched once locally, fresh per-request on Vercel (serverless)
 let browserPromise = null;
-function getBrowser() {
+async function getBrowser() {
+  if (IS_VERCEL) {
+    // Serverless: launch fresh each invocation with @sparticuz/chromium
+    return puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  }
+  // Local: reuse singleton browser
   if (!browserPromise) {
-    browserPromise = puppeteer.launch({
+    browserPromise = puppeteerFull.launch({
       headless: "new",
       args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
     });
@@ -528,23 +547,29 @@ ${html}
 });
 
 // =============== START ===============
-app.listen(PORT, () => {
-  console.log(`\n🚀 Scaler Roadmap server running\n`);
-  console.log(`   Frontend:    http://localhost:${PORT}`);
-  console.log(`   API health:  http://localhost:${PORT}/api/health`);
-  console.log(`\n   Press Ctrl+C to stop\n`);
-});
+// On Vercel, the app is imported as a serverless function — don't call listen()
+if (!IS_VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 Scaler Roadmap server running\n`);
+    console.log(`   Frontend:    http://localhost:${PORT}`);
+    console.log(`   API health:  http://localhost:${PORT}/api/health`);
+    console.log(`\n   Press Ctrl+C to stop\n`);
+  });
 
-// Graceful shutdown — close Puppeteer browser
-async function shutdown() {
-  console.log("\n   Shutting down...");
-  if (browserPromise) {
-    try {
-      const b = await browserPromise;
-      await b.close();
-    } catch (e) { /* ignore */ }
+  // Graceful shutdown — close Puppeteer browser
+  async function shutdown() {
+    console.log("\n   Shutting down...");
+    if (browserPromise) {
+      try {
+        const b = await browserPromise;
+        await b.close();
+      } catch (e) { /* ignore */ }
+    }
+    process.exit(0);
   }
-  process.exit(0);
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+
+// Export for Vercel serverless
+export default app;
